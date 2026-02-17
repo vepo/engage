@@ -1,4 +1,4 @@
-package dev.vepo.engage.sync;
+package dev.vepo.engage.comments.sync;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -12,16 +12,18 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.youtube.YouTube;
 
-import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
 public class SyncCommentsTask {
     private static final Logger logger = LoggerFactory.getLogger(SyncCommentsTask.class);
 
-    private static final String APPLICATION_NAME = "YOUR_APPLICATION_NAME";
-    @ConfigProperty(name = "youtube.api.key")
-    String apiKey;
+    private static final String APPLICATION_NAME = "engage";
+    private String apiKey;
+
+    public SyncCommentsTask(@ConfigProperty(name = "youtube.api.key") String apiKey) {
+        this.apiKey = apiKey;
+    }
 
     public YouTube getServiceWithApiKey() throws GeneralSecurityException, IOException {
         final NetHttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
@@ -32,7 +34,7 @@ public class SyncCommentsTask {
                                         .build();
     }
 
-    @Scheduled(every = "10s")
+    // @Scheduled(every = "10s")
     void loadNewComments() {
         logger.info("Loading new comments...");
         try {
@@ -43,6 +45,7 @@ public class SyncCommentsTask {
             commentRequest.setKey(apiKey);
             commentRequest.setVideoId("ELf3KgIqjLA");
             commentRequest.setMaxResults(100L);
+            commentRequest.setChannelId("APPLICATION_NAME");
 
             logger.info("Sending request....");
             // Execute and process comments
