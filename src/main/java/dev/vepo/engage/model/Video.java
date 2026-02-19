@@ -11,19 +11,32 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "tb_videos")
 public class Video {
-@Id
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "yt_id")
+    @Column(name = "yt_id", unique = true, nullable = false)
     private String youtubeId;
 
+    @ManyToOne
+    @JoinColumn(name = "channel_id", nullable = false)
+    private Channel channel;
+
+    private String title;
+
     private String description;
+
+    private String thumbnail;
+
+    @Column(name = "published_at")
+    private Instant publishedAt;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
@@ -46,12 +59,44 @@ public class Video {
         this.id = id;
     }
 
+    public Channel getChannel() {
+        return channel;
+    }
+
+    public void setChannel(Channel channel) {
+        this.channel = channel;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
     public String getYoutubeId() {
         return youtubeId;
     }
 
     public void setYoutubeId(String youtubeId) {
         this.youtubeId = youtubeId;
+    }
+
+    public String getThumbnail() {
+        return thumbnail;
+    }
+
+    public void setThumbnail(String thumbnail) {
+        this.thumbnail = thumbnail;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public Instant getCreatedAt() {
@@ -68,6 +113,14 @@ public class Video {
 
     public void setSyncAt(Instant syncAt) {
         this.syncAt = syncAt;
+    }
+
+    public Instant getPublishedAt() {
+        return publishedAt;
+    }
+
+    public void setPublishedAt(Instant publishedAt) {
+        this.publishedAt = publishedAt;
     }
 
     public Instant getUpdatedAt() {

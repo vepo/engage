@@ -20,8 +20,11 @@ public class Channel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "yt_id")
+    @Column(name = "yt_id", length = 50)
     private String youtubeId;
+
+    @Column(name = "next_page_token")
+    private String nextPageToken;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
@@ -50,6 +53,14 @@ public class Channel {
 
     public void setYoutubeId(String youtubeId) {
         this.youtubeId = youtubeId;
+    }
+
+    public String getNextPageToken() {
+        return nextPageToken;
+    }
+
+    public void setNextPageToken(String nextPageToken) {
+        this.nextPageToken = nextPageToken;
     }
 
     public Instant getCreatedAt() {

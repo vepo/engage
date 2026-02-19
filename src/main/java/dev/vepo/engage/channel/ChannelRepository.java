@@ -27,4 +27,9 @@ public class ChannelRepository {
                                  .toList();
     }
 
+    public Channel save(Channel channel) {
+        this.entityManager.persist(channel);
+        return channel;
+    }
+
 }
