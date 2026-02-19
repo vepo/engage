@@ -16,6 +16,7 @@ import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.DateTime;
 import com.google.api.services.youtube.YouTube;
+import com.google.api.services.youtube.model.CommentThread;
 import com.google.api.services.youtube.model.SearchResult;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -66,7 +67,7 @@ public class YoutubeService {
                                                   .setPublishedAfter(Optional.ofNullable(lastSync)
                                                                              .map(sync -> new DateTime(sync.toEpochMilli()))
                                                                              .orElseGet(() -> new DateTime(0l)))
-                                                  .setMaxResults(10L)
+                                                  .setMaxResults(100L)
                                                   .setOrder("date")
                                                   .setKey(apiKey)
                                                   .setPageToken(nextPageToken);
@@ -91,5 +92,33 @@ public class YoutubeService {
             throw new RuntimeException("Cannot load Youtube Service!", ioe);
         }
         return null;
+    }
+
+    public void loadNewCommentsForVideo(String youtubeId, Consumer<CommentThread> consumer) {
+        try {
+            logger.info("Syncing comments for video: {}", youtubeId);
+
+            YouTube youtubeService = getServiceWithApiKey();
+            String nextPageToken = null;
+
+            do {
+                var commentRequest = youtubeService.commentThreads()
+                                                   .list("snippet,replies")
+                                                   .setKey(apiKey)
+                                                   .setVideoId(youtubeId)
+                                                   .setMaxResults(100L)
+                                                   .setOrder("time")
+                                                   .setPageToken(nextPageToken);
+
+                var commentResponse = commentRequest.execute();
+
+                commentResponse.getItems().forEach(consumer);
+                nextPageToken = commentResponse.getNextPageToken();
+            } while (nextPageToken != null);
+
+            logger.info("Comments sync completed for video: {}", youtubeId);
+        } catch (Exception ex) {
+            logger.error("Error syncing comments for video: {}", youtubeId, ex);
+        }
     }
 }

@@ -32,6 +32,14 @@ public class VideoRepository {
                                  .findFirst();
     }
 
+    public Optional<Video> findById(long id) {
+        return this.entityManager.createQuery("FROM Video WHERE id = :id", Video.class)
+                                 .setParameter("id", id)
+                                 .getResultStream()
+                                 .limit(1)
+                                 .findFirst();
+    }
+
     public Video save(Video video) {
         this.entityManager.persist(video);
         return video;
