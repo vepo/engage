@@ -215,7 +215,15 @@ public class YoutubeApiFacade {
                                                 Boolean.TRUE.equals(statistics.getHiddenSubscriberCount()));
         } catch (GoogleJsonResponseException gjre) {
             logger.error("YouTube API error loading channel statistics for {}", youtubeChannelId, gjre);
-            throw new IllegalStateException("Cannot load YouTube channel statistics", gjre);
+            throw youtubeRequestFailed("Cannot load YouTube channel statistics", gjre);
+        } catch (IllegalArgumentException ex) {
+            if (isGoogleApiErrorParsingFailure(ex)) {
+                logger.error("YouTube API rejected request for channel {}", youtubeChannelId, ex);
+                throw new IllegalStateException(
+                                                "YouTube API rejected the request — verify the API key, enable YouTube Data API v3, and enable billing",
+                                                ex);
+            }
+            throw ex;
         } catch (IOException ioe) {
             logger.error("IO error loading channel statistics for {}", youtubeChannelId, ioe);
             throw new IllegalStateException("Cannot load YouTube channel statistics", ioe);
@@ -289,6 +297,29 @@ public class YoutubeApiFacade {
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalStateException("YouTube API key is required for this channel");
         }
+    }
+
+    private IllegalStateException youtubeRequestFailed(String message, GoogleJsonResponseException gjre) {
+        if (gjre.getStatusCode() == Status.BAD_REQUEST.getStatusCode()
+                || gjre.getStatusCode() == Status.FORBIDDEN.getStatusCode()) {
+            return new IllegalStateException(
+                                             "%s — verify the API key, enable YouTube Data API v3, and check key restrictions".formatted(message),
+                                             gjre);
+        }
+        return new IllegalStateException(message, gjre);
+    }
+
+    private boolean isGoogleApiErrorParsingFailure(Throwable ex) {
+        for (var current = ex; current != null; current = current.getCause()) {
+            if (current instanceof InstantiationException || current instanceof NoSuchMethodException) {
+                return true;
+            }
+            var className = current.getClass().getName();
+            if (className.contains("GoogleJsonError") || className.contains("GenericJson")) {
+                return true;
+            }
+        }
+        return ex.getMessage() != null && ex.getMessage().contains("key error");
     }
 
     private long parseCount(java.math.BigInteger value) {

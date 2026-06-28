@@ -59,7 +59,7 @@ public class ChannelService {
         channel.setSyncAt(Instant.now());
 
         if (channel.isReadyForSync()) {
-            youtubeApiFacade.validateChannelExists(channel.getYoutubeApiKey(), channel.getYoutubeId());
+            validateYoutubeConnection(channel.getYoutubeApiKey(), channel.getYoutubeId());
         }
 
         return ChannelResponse.from(channelRepository.save(channel));
@@ -95,7 +95,7 @@ public class ChannelService {
         }
 
         if (channel.isReadyForSync()) {
-            youtubeApiFacade.validateChannelExists(channel.getYoutubeApiKey(), channel.getYoutubeId());
+            validateYoutubeConnection(channel.getYoutubeApiKey(), channel.getYoutubeId());
         }
 
         return ChannelResponse.from(channelRepository.merge(channel));
@@ -124,5 +124,13 @@ public class ChannelService {
         }
         var trimmed = apiKey.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private void validateYoutubeConnection(String apiKey, String youtubeChannelId) {
+        try {
+            youtubeApiFacade.validateChannelExists(apiKey, youtubeChannelId);
+        } catch (IllegalStateException ex) {
+            throw new WebApplicationException(ex.getMessage(), Response.Status.BAD_REQUEST);
+        }
     }
 }

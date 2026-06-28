@@ -26,6 +26,8 @@ YouTube engagement service: channel registry, video/comment sync, live statistic
 
 All YouTube Data API v3 calls go through `YoutubeApiFacade` (`shared/youtube/`). Each method receives the **channel-specific API key**; sync and statistics skip channels that are not `connected` or lack a key.
 
+Native image: register Google/YouTube JSON types via `GoogleApiReflectionConfig` (`@RegisterForReflection`) — without it, channel connect fails at runtime even when `curl` against the same API works.
+
 Quota-conscious sync (configurable in `application.properties`):
 
 | Property | Default | Effect |
