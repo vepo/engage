@@ -71,6 +71,10 @@ curl -X POST http://localhost:8082/api/channels \
 
 Seed channel in `V0.0.1__Database_Creation.sql` (`UC6g6eok10NJGYgenHO-0Oew`) is **disconnected** until an API key is set.
 
+## CI
+
+`.github/workflows/maven.yml`: `mvn clean compile`, `mvn test`. Native Docker image `vepo/engage` on push to `main` / tags (`src/main/docker/Dockerfile`).
+
 ## Consumers
 
 - **Backoffice** — `/engage/statistics`; proxy `/engage/api/**` → Engage:8082
