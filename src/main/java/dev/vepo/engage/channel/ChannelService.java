@@ -95,7 +95,7 @@ public class ChannelService {
         }
 
         if (channel.isReadyForSync()) {
-            validateYoutubeConnection(channel.getYoutubeApiKey(), channel.getYoutubeId());
+            validateYoutubeConnection(apiKey, channel.getYoutubeId());
         }
 
         return ChannelResponse.from(channelRepository.merge(channel));
