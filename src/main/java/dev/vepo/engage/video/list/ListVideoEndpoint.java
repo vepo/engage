@@ -2,8 +2,10 @@ package dev.vepo.engage.video.list;
 
 import java.util.List;
 
+import dev.vepo.engage.shared.security.RequiredRoles;
 import dev.vepo.engage.video.VideoRepository;
 import dev.vepo.engage.video.VideoResponse;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -16,6 +18,7 @@ import jakarta.ws.rs.core.MediaType;
 @Path("videos")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@RolesAllowed(RequiredRoles.ENGAGE_ADMIN)
 public class ListVideoEndpoint {
 
     private final VideoRepository videoRepository;

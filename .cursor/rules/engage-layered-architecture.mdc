@@ -1,0 +1,41 @@
+---
+description: Layered architecture — Endpoint, Task/Service, Repository responsibilities
+alwaysApply: true
+---
+
+# Layered architecture
+
+Follow [ARCHITECTURE.md](../../ARCHITECTURE.md) §8. Dependencies flow **downward**:
+
+```
+*Endpoint / Sync*Task  →  YoutubeApiFacade (external)  →  YouTube API
+*Endpoint / Sync*Task  →  *Service (when needed)  →  *Repository  →  database
+```
+
+## *Endpoint — HTTP boundary
+
+- Parse/validate input; map to repository calls; return JSON or `Response`.
+- No `EntityManager` in endpoints (use repositories).
+
+## Sync*Task — background ingestion
+
+- `@Scheduled` + `@Transactional` where needed.
+- Call `YoutubeApiFacade` for API data; map to entities; save via repositories.
+- No HTTP types.
+
+## YoutubeApiFacade — external integration
+
+- Google YouTube client only; no JPA.
+- Expose page-level methods: `fetchVideoSearchPage`, `fetchCommentThreadPage`, etc.
+
+## *Service — business logic
+
+- `ChannelService` for register/update/connect validation.
+
+## *Repository — persistence
+
+- JPQL queries; `Optional` for singles; no business rules.
+
+## When adding ingestion
+
+Extend `YoutubeApiFacade` if API shape changes; extend `Sync*Task` for workflow; keep entities in `model/`.

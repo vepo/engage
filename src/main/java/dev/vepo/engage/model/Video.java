@@ -49,6 +49,12 @@ public class Video {
     @Column(name = "sync_at", nullable = false)
     private Instant syncAt;
 
+    @Column(name = "comments_sync_at")
+    private Instant commentsSyncAt;
+
+    @Column(name = "comments_next_page_token")
+    private String commentsNextPageToken;
+
     public Video() {}
 
     public Long getId() {
@@ -113,6 +119,22 @@ public class Video {
 
     public void setSyncAt(Instant syncAt) {
         this.syncAt = syncAt;
+    }
+
+    public Instant getCommentsSyncAt() {
+        return commentsSyncAt;
+    }
+
+    public void setCommentsSyncAt(Instant commentsSyncAt) {
+        this.commentsSyncAt = commentsSyncAt;
+    }
+
+    public String getCommentsNextPageToken() {
+        return commentsNextPageToken;
+    }
+
+    public void setCommentsNextPageToken(String commentsNextPageToken) {
+        this.commentsNextPageToken = commentsNextPageToken;
     }
 
     public Instant getPublishedAt() {

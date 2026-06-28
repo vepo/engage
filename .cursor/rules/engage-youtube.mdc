@@ -1,0 +1,32 @@
+---
+description: YouTube Data API sync conventions
+globs: src/main/java/**/youtube/**/*.java,src/main/java/**/sync/**/*.java
+alwaysApply: false
+---
+
+# YouTube integration
+
+## YoutubeApiFacade
+
+- Single facade for YouTube Data API v3 — all external calls go here.
+- Each method receives the **channel API key** (`setKey(apiKey)` on requests).
+- Paginate with `nextPageToken`; expose page-level methods for quota-aware sync.
+- Log errors with channel/video id context; return last page on FORBIDDEN for search/comments.
+
+## SyncVideoTask
+
+- One **connected** channel per scheduled run (round-robin).
+- One search page per run (`engage.sync.video.pages-per-run`, default 1).
+- Upsert videos by `youtubeId`; update channel `syncAt` and `nextPageToken`.
+
+## SyncCommentsTask
+
+- Process up to `engage.sync.comments.videos-per-run` videos due by `commentsSyncAt`.
+- One comment page per video per run; store `commentsNextPageToken` until exhausted.
+- Process top-level threads and replies; upsert by `youtubeCommentId`.
+
+## Never
+
+- Call YouTube API from endpoints or repositories.
+- Hard-code or expose API keys in responses.
+- Change scheduler intervals without noting quota impact in ARCHITECTURE.md.

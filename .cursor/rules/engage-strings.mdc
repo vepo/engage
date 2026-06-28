@@ -1,0 +1,11 @@
+---
+description: Avoid string concatenation — prefer formatted()
+globs: src/main/java/**/*.java
+alwaysApply: false
+---
+
+# String building
+
+Use `.formatted()` for messages and exceptions. No `+` concatenation for interpolated strings.
+
+Fix legacy `+` in `ChannelResource` when touching those lines.

@@ -1,0 +1,14 @@
+---
+description: QuarkusTest conventions (when tests are added)
+globs: src/test/java/**/*.java
+alwaysApply: false
+---
+
+# Test conventions
+
+- Use `@QuarkusTest` + RestAssured for HTTP APIs.
+- Mock or stub YouTube API in tests — do not call live YouTube from CI.
+- Use test `%test` profile properties for `youtube.api.key` if needed.
+- Self-contained tests; clean DB state per test when mutating.
+
+No test suite exists yet — add tests following this rule when implementing coverage.

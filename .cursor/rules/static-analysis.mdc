@@ -1,0 +1,41 @@
+---
+description: Run local static analysis and fix new issues before finishing a task
+alwaysApply: true
+---
+
+# Static analysis — finish checklist
+
+## When to run
+
+After Java or SQL migration changes. Skip docs-only / `.mdc`-only edits.
+
+## Required commands
+
+```bash
+./mvnw -B clean test
+```
+
+Compiles, runs formatter (`process-sources`), and tests when present.
+
+Faster compile check:
+
+```bash
+./mvnw -B clean compile
+```
+
+## Formatting
+
+```bash
+./mvnw -B process-sources
+```
+
+[`resources/formatter.xml`](../../resources/formatter.xml) — [engage-format-imports.mdc](engage-format-imports.mdc).
+
+## IDE diagnostics
+
+`ReadLints` on changed files.
+
+## Do not finish while
+
+- `./mvnw clean compile` fails.
+- New linter errors in touched files.

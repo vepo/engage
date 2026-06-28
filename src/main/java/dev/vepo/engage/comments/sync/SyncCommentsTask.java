@@ -2,6 +2,7 @@ package dev.vepo.engage.comments.sync;
 
 import java.time.Instant;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,7 +11,9 @@ import com.google.api.services.youtube.model.CommentThread;
 import dev.vepo.engage.comments.CommentRepository;
 import dev.vepo.engage.model.Comment;
 import dev.vepo.engage.model.Video;
-import dev.vepo.engage.shared.youtube.YoutubeService;
+import dev.vepo.engage.shared.notification.PassportNotificationPublisher;
+import dev.vepo.engage.shared.notification.SyncRunReport;
+import dev.vepo.engage.shared.youtube.YoutubeApiFacade;
 import dev.vepo.engage.video.VideoRepository;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -21,26 +24,80 @@ import jakarta.transaction.Transactional;
 public class SyncCommentsTask {
     private static final Logger logger = LoggerFactory.getLogger(SyncCommentsTask.class);
 
-    private final YoutubeService youtubeService;
+    private final YoutubeApiFacade youtubeApiFacade;
     private final VideoRepository videoRepository;
     private final CommentRepository commentRepository;
+    private final PassportNotificationPublisher passportNotificationPublisher;
+    private final int videosPerRun;
 
     @Inject
-    public SyncCommentsTask(YoutubeService youtubeService,
+    public SyncCommentsTask(YoutubeApiFacade youtubeApiFacade,
                             VideoRepository videoRepository,
-                            CommentRepository commentRepository) {
-        this.youtubeService = youtubeService;
+                            CommentRepository commentRepository,
+                            PassportNotificationPublisher passportNotificationPublisher,
+                            @ConfigProperty(name = "engage.sync.comments.videos-per-run", defaultValue = "3") int videosPerRun) {
+        this.youtubeApiFacade = youtubeApiFacade;
         this.videoRepository = videoRepository;
         this.commentRepository = commentRepository;
+        this.passportNotificationPublisher = passportNotificationPublisher;
+        this.videosPerRun = Math.max(1, videosPerRun);
     }
 
-    @Scheduled(every = "1m")
+    @Scheduled(every = "${engage.sync.comments.interval:10m}", delayed = "45s")
     @Transactional
-    void loadNewComments() {
-        logger.info("Starting comments sync...");
-        videoRepository.findAll()
-                       .forEach(video -> this.youtubeService.loadNewCommentsForVideo(video.getYoutubeId(),
-                                                                                     comment -> processCommentThread(comment, video)));
+    void syncCommentsForDueVideos() {
+        var videos = videoRepository.findDueForCommentSync(videosPerRun);
+        if (videos.isEmpty()) {
+            logger.debug("No videos due for comment sync");
+            return;
+        }
+
+        logger.info("Starting comment sync for {} video(s)", videos.size());
+        videos.forEach(this::syncCommentsForVideo);
+    }
+
+    private void syncCommentsForVideo(Video video) {
+        var channel = video.getChannel();
+        if (!channel.isReadyForSync()) {
+            logger.debug("Skipping comment sync for video {} — channel not connected", video.getYoutubeId());
+            return;
+        }
+
+        var report = new SyncRunReport("comment_sync",
+                                       channel.getId(),
+                                       "Sincronização de comentários",
+                                       "Vídeo %s".formatted(video.getYoutubeId()));
+        report.putSummary("youtubeVideoId", video.getYoutubeId());
+        report.putSummary("youtubeChannelId", channel.getYoutubeId());
+
+        var threadsProcessed = 0;
+        try {
+            var page = youtubeApiFacade.fetchCommentThreadPage(channel.getYoutubeApiKey(),
+                                                               video.getYoutubeId(),
+                                                               video.getCommentsNextPageToken(),
+                                                               report);
+            page.items().forEach(thread -> processCommentThread(thread, video));
+            threadsProcessed = page.items().size();
+
+            if (page.lastPage()) {
+                video.setCommentsNextPageToken(null);
+                video.setCommentsSyncAt(Instant.now());
+            } else {
+                video.setCommentsNextPageToken(page.nextPageToken());
+            }
+            videoRepository.save(video);
+
+            report.putSummary("status", "completed");
+            report.putSummary("threadsProcessed", threadsProcessed);
+            report.setDescription("Vídeo %s — %d thread(s) processada(s)".formatted(video.getYoutubeId(), threadsProcessed));
+        } catch (Exception ex) {
+            logger.error("Error syncing comments for video {}", video.getYoutubeId(), ex);
+            report.putSummary("status", "failed");
+            report.putSummary("error", ex.getMessage());
+            report.setDescription("Falha na sincronização de comentários do vídeo %s".formatted(video.getYoutubeId()));
+        } finally {
+            passportNotificationPublisher.publishSyncReport(report);
+        }
     }
 
     private void processCommentThread(CommentThread commentThread, Video video) {
@@ -53,7 +110,6 @@ public class SyncCommentsTask {
                              .ifPresentOrElse(existingComment -> updateExistingComment(existingComment, topLevelComment),
                                               () -> createNewComment(commentId, video, topLevelComment));
 
-            // Process replies if any
             if (commentThread.getReplies() != null) {
                 for (var reply : commentThread.getReplies().getComments()) {
                     processReply(reply, video);
@@ -69,8 +125,7 @@ public class SyncCommentsTask {
         var replyId = reply.getId();
 
         commentRepository.findByYoutubeCommentId(replyId)
-                         .ifPresentOrElse(
-                                          existingComment -> updateExistingComment(existingComment, snippet),
+                         .ifPresentOrElse(existingComment -> updateExistingComment(existingComment, snippet),
                                           () -> createNewComment(replyId, video, snippet));
     }
 
@@ -90,7 +145,6 @@ public class SyncCommentsTask {
         comment.setSyncAt(Instant.now());
 
         commentRepository.save(comment);
-        logger.debug("Created new comment: {}", commentId);
     }
 
     private void updateExistingComment(Comment existingComment,
@@ -98,8 +152,6 @@ public class SyncCommentsTask {
         existingComment.setText(snippet.getTextDisplay());
         existingComment.setLikeCount(snippet.getLikeCount().intValue());
         existingComment.setSyncAt(Instant.now());
-
         commentRepository.save(existingComment);
-        logger.debug("Updated comment: {}", existingComment.getYoutubeCommentId());
     }
 }

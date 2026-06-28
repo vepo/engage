@@ -1,0 +1,13 @@
+---
+description: Tell, Don't Ask — encapsulate domain decisions in intent methods
+globs: src/**/*.java
+alwaysApply: false
+---
+
+# Tell, Don't Ask
+
+Naming: [domain-model.mdc](domain-model.mdc). See [engage-law-of-demeter.mdc](engage-law-of-demeter.mdc).
+
+Tell sync tasks and endpoints to **register channel**, **sync comments** — avoid scattered `setYoutubeId` + duplicate existence checks; consolidate in repository or channel helpers when touching that code.
+
+Apply on new/touched behavior.

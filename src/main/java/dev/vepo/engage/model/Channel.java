@@ -26,6 +26,12 @@ public class Channel {
     @Column(name = "next_page_token")
     private String nextPageToken;
 
+    @Column(name = "youtube_api_key")
+    private String youtubeApiKey;
+
+    @Column(name = "connected", nullable = false)
+    private boolean connected;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -61,6 +67,26 @@ public class Channel {
 
     public void setNextPageToken(String nextPageToken) {
         this.nextPageToken = nextPageToken;
+    }
+
+    public String getYoutubeApiKey() {
+        return youtubeApiKey;
+    }
+
+    public void setYoutubeApiKey(String youtubeApiKey) {
+        this.youtubeApiKey = youtubeApiKey;
+    }
+
+    public boolean isConnected() {
+        return connected;
+    }
+
+    public void setConnected(boolean connected) {
+        this.connected = connected;
+    }
+
+    public boolean isReadyForSync() {
+        return connected && youtubeApiKey != null && !youtubeApiKey.isBlank();
     }
 
     public Instant getCreatedAt() {

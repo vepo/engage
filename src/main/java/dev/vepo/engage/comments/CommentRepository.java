@@ -41,6 +41,17 @@ public class CommentRepository {
                                  .findFirst();
     }
 
+    public List<Comment> findByChannelId(Long channelId) {
+        return this.entityManager.createQuery("""
+                                              FROM Comment c
+                                              WHERE c.video.channel.id = :channelId
+                                              ORDER BY c.publishedAt DESC
+                                              """, Comment.class)
+                                 .setParameter("channelId", channelId)
+                                 .getResultStream()
+                                 .toList();
+    }
+
     public Comment save(Comment comment) {
         this.entityManager.persist(comment);
         return comment;

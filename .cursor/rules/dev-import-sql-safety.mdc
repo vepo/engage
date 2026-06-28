@@ -1,0 +1,17 @@
+---
+description: Keep Flyway migrations and future dev seed valid
+globs: src/main/resources/db/migration/*.sql
+alwaysApply: false
+---
+
+# Migration safety
+
+Engage uses Flyway only (no `dev-import.sql` yet). Migration `V0.0.1` seeds one channel.
+
+When changing schema:
+
+1. Update entity fields and repositories in the same PR.
+2. Update sync tasks if new `NOT NULL` columns need YouTube mapping.
+3. Restart `quarkus:dev` and confirm Flyway applies cleanly.
+
+If `dev-import.sql` is added later, treat it like [passport dev-import rules](../../passport/.cursor/rules/dev-import-sql-safety.mdc) — same PR as migration.

@@ -1,0 +1,40 @@
+---
+description: Local dev — YouTube API key, seed channel, port 8082
+alwaysApply: true
+---
+
+# Development experience
+
+## Run
+
+```bash
+export YOUTUBE_API_KEY=your-key-here
+./mvnw quarkus:dev
+```
+
+- Dev port: **8082**
+- Flyway clean-at-start reloads schema + seed channel `UC6g6eok10NJGYgenHO-0Oew`
+- Scheduler syncs videos/comments when API key is valid
+
+## Platform stack
+
+With Backoffice:
+
+```bash
+# From backoffice/
+./scripts/dev-platform.sh   # Passport + Visita + Backoffice (add Engage manually on 8082)
+```
+
+Backoffice proxy: `/engage/api/**` → port 8082.
+
+## When adding features
+
+- New channel fields → migration + update sync mapping if from YouTube.
+- Verify via OpenAPI `/openapi` or curl against `http://localhost:8082`.
+
+## Never
+
+- Commit `youtube.api.key` to the repo.
+- Ship sync features without documenting required API key in ARCHITECTURE.md §13.
+
+No `dev-import.sql` yet — migration seed is the dev baseline. Add `dev-import.sql` + `DatabaseDevSetup` if richer dev data is needed (follow passport pattern).

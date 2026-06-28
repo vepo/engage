@@ -60,9 +60,19 @@ public class ChannelRepository {
         }
     }
 
+    public List<Channel> findConnectedReadyForSync() {
+        return this.entityManager.createQuery("FROM Channel c WHERE c.connected = true AND c.youtubeApiKey IS NOT NULL", Channel.class)
+                                 .getResultStream()
+                                 .toList();
+    }
+
     public Channel save(Channel channel) {
         this.entityManager.persist(channel);
         return channel;
+    }
+
+    public Channel merge(Channel channel) {
+        return this.entityManager.merge(channel);
     }
 
     public boolean existsByYoutubeId(String youtubeId) {

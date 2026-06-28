@@ -1,0 +1,13 @@
+---
+description: Law of Demeter — no train wrecks
+globs: src/**/*.java
+alwaysApply: false
+---
+
+# Law of Demeter
+
+Avoid train wrecks in business logic (`comment.getVideo().getChannel().getYoutubeId()`).
+
+Prefer repository queries with JOIN FETCH or expose helpers on entities when multiple callers need the same hop.
+
+Repository JPQL paths are fine.

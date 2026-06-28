@@ -1,0 +1,17 @@
+---
+description: Java endpoint, repository, and entity conventions
+globs: "**/*.java"
+alwaysApply: false
+---
+
+# Java conventions
+
+Import order: `java.*` / `jakarta.*` → `io.quarkus.*` → third-party → `dev.vepo.engage.*`.
+
+- Formatting: [engage-format-imports.mdc](engage-format-imports.mdc).
+- Strings: [engage-strings.mdc](engage-strings.mdc).
+- Prefer `var` when obvious; records for API DTOs.
+- SLF4J; no API keys in logs.
+- Entities in `model/`; `Instant` timestamps.
+
+Domain naming: [domain-model.mdc](domain-model.mdc).

@@ -40,8 +40,31 @@ public class VideoRepository {
                                  .findFirst();
     }
 
+    public List<Video> findDueForCommentSync(int limit) {
+        return this.entityManager.createQuery("""
+                                              FROM Video v
+                                              JOIN v.channel c
+                                              WHERE c.connected = true
+                                                AND c.youtubeApiKey IS NOT NULL
+                                              ORDER BY v.commentsSyncAt ASC NULLS FIRST, v.id ASC
+                                              """, Video.class)
+                                 .setMaxResults(limit)
+                                 .getResultStream()
+                                 .toList();
+    }
+
+    public List<Video> findByChannelId(Long channelId) {
+        return this.entityManager.createQuery("FROM Video v WHERE v.channel.id = :channelId ORDER BY v.publishedAt DESC", Video.class)
+                                 .setParameter("channelId", channelId)
+                                 .getResultStream()
+                                 .toList();
+    }
+
     public Video save(Video video) {
-        this.entityManager.persist(video);
-        return video;
+        if (video.getId() == null) {
+            this.entityManager.persist(video);
+            return video;
+        }
+        return this.entityManager.merge(video);
     }
 }

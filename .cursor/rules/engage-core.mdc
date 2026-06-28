@@ -1,0 +1,42 @@
+---
+description: Core Engage conventions (YouTube sync, REST API, packages)
+alwaysApply: true
+---
+
+# Engage — core rules
+
+Follow [ARCHITECTURE.md](../../ARCHITECTURE.md) and [`docs/domain-specification.md`](../../docs/domain-specification.md).
+
+## Stack
+
+- Quarkus + REST/JSON + Scheduler. PostgreSQL + Flyway.
+- YouTube Data API v3 via `YoutubeApiFacade` (`google-api-services-youtube`).
+- JWT issuer configured; secure endpoints with `@RolesAllowed` when adding auth.
+- Repo tooling: no Python — [engage-tooling-languages.mdc](engage-tooling-languages.mdc).
+
+## Endpoints
+
+- `@ApplicationScoped` + `@Path`. Constructor injection.
+- Records for request/response (`CreateChannelRequest`, `ChannelResponse`).
+- Prefer `.formatted()` for error messages — [engage-strings.mdc](engage-strings.mdc).
+
+## Data access
+
+- Repositories: `EntityManager`, `Optional` for singles.
+- [engage-jpa.mdc](engage-jpa.mdc) for query style.
+- YouTube API calls **only** in `YoutubeApiFacade`; persistence in repositories; orchestration in `ChannelService` and `Sync*Task`.
+
+## YouTube config
+
+- Per-channel `youtubeApiKey` on **connected** channels; never commit real keys.
+- Handle `GoogleJsonResponseException` in `YoutubeApiFacade`; log context ids.
+
+## Never
+
+- `System.out.println` — use SLF4J.
+- Raw SQL in endpoints or sync tasks.
+- Store YouTube API key in source control.
+
+## When adding a feature
+
+ARCHITECTURE.md §12 — migration → model → repository → endpoint → sync task (if ingestion) → tests → domain spec → **ARCHITECTURE.md**.
