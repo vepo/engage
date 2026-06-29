@@ -60,6 +60,7 @@ erDiagram
 | **List channels** | Return all registered channels. | `ListChannelsEndpoint` |
 | **List videos** | Return synced videos paginated, newest first, with comment counts. | `ListVideoEndpoint`, `GET /api/videos?page&size&q` |
 | **List comments** | Return comments for a video or all videos in a channel. | `ListVideoCommentsEndpoint`, `ListChannelCommentsEndpoint` |
+| **Comment word cloud** | Aggregate frequent terms from synced comment text (stop words removed). | `CommentWordCloudService`, `GET .../comments/word-cloud` |
 
 ### Comment model
 
