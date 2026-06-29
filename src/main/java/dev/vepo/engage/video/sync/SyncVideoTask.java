@@ -8,14 +8,13 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.api.services.youtube.model.SearchResult;
-
 import dev.vepo.engage.channel.ChannelRepository;
 import dev.vepo.engage.model.Channel;
 import dev.vepo.engage.model.Video;
 import dev.vepo.engage.shared.notification.PassportNotificationPublisher;
 import dev.vepo.engage.shared.notification.SyncRunReport;
 import dev.vepo.engage.shared.youtube.YoutubeApiFacade;
+import dev.vepo.engage.shared.youtube.YoutubeVideoSnippet;
 import dev.vepo.engage.video.VideoRepository;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -70,22 +69,28 @@ public class SyncVideoTask {
         report.putSummary("pagesPerRun", videoPagesPerRun);
 
         var pageToken = channel.getNextPageToken();
-        var publishedAfter = channel.getSyncAt();
+        var backfillInProgress = pageToken != null;
         var videosProcessed = 0;
 
         try {
-            for (int page = 0; page < videoPagesPerRun; page++) {
-                var searchPage = youtubeApiFacade.fetchVideoSearchPage(channel.getYoutubeApiKey(),
-                                                                       channel.getYoutubeId(),
-                                                                       publishedAfter,
-                                                                       pageToken,
-                                                                       report);
-                searchPage.items().forEach(item -> upsertVideo(item, channel));
-                videosProcessed += searchPage.items().size();
+            var uploadsPlaylistId = resolveUploadsPlaylistId(channel, report);
+            report.putSummary("uploadsPlaylistId", uploadsPlaylistId);
 
-                pageToken = searchPage.nextPageToken();
-                if (searchPage.lastPage()) {
+            for (int page = 0; page < videoPagesPerRun; page++) {
+                var requestToken = backfillInProgress ? pageToken : null;
+                var playlistPage = youtubeApiFacade.fetchUploadsPlaylistPage(channel.getYoutubeApiKey(),
+                                                                             uploadsPlaylistId,
+                                                                             requestToken,
+                                                                             report);
+                playlistPage.items().forEach(item -> upsertVideo(item, channel));
+                videosProcessed += playlistPage.items().size();
+
+                pageToken = playlistPage.nextPageToken();
+                if (playlistPage.lastPage()) {
                     pageToken = null;
+                    break;
+                }
+                if (!backfillInProgress) {
                     break;
                 }
             }
@@ -96,6 +101,7 @@ public class SyncVideoTask {
 
             report.putSummary("status", "completed");
             report.putSummary("videosProcessed", videosProcessed);
+            report.putSummary("backfillInProgress", pageToken != null);
             report.setDescription("Canal %s — %d vídeo(s) processado(s)".formatted(channel.getYoutubeId(), videosProcessed));
         } catch (Exception ex) {
             logger.error("Video sync failed for channel {}", channel.getYoutubeId(), ex);
@@ -107,30 +113,44 @@ public class SyncVideoTask {
         }
     }
 
-    private void upsertVideo(SearchResult video, Channel channel) {
-        videoRepository.findByYoutubeId(video.getId().getVideoId())
+    private String resolveUploadsPlaylistId(Channel channel, SyncRunReport report) {
+        if (channel.getUploadsPlaylistId() != null && !channel.getUploadsPlaylistId().isBlank()) {
+            return channel.getUploadsPlaylistId();
+        }
+
+        var uploadsPlaylistId = youtubeApiFacade.fetchUploadsPlaylistId(channel.getYoutubeApiKey(), channel.getYoutubeId());
+        channel.setUploadsPlaylistId(uploadsPlaylistId);
+        channelRepository.merge(channel);
+        report.putSummary("uploadsPlaylistResolved", true);
+        return uploadsPlaylistId;
+    }
+
+    private void upsertVideo(YoutubeVideoSnippet video, Channel channel) {
+        videoRepository.findByYoutubeId(video.youtubeId())
                        .ifPresentOrElse(dbVideo -> updateVideo(dbVideo, video, channel),
                                         () -> createVideo(video, channel));
     }
 
-    private void updateVideo(Video dbVideo, SearchResult video, Channel channel) {
+    private void updateVideo(Video dbVideo, YoutubeVideoSnippet video, Channel channel) {
         dbVideo.setChannel(channel);
-        dbVideo.setDescription(video.getSnippet().getDescription());
-        dbVideo.setTitle(video.getSnippet().getTitle());
-        dbVideo.setThumbnail(video.getSnippet().getThumbnails().getHigh().getUrl());
+        dbVideo.setDescription(video.description());
+        dbVideo.setTitle(video.title());
+        dbVideo.setThumbnail(video.thumbnailUrl());
         dbVideo.setSyncAt(Instant.now());
-        dbVideo.setPublishedAt(Instant.ofEpochMilli(video.getSnippet().getPublishedAt().getValue()));
+        if (video.publishedAt() != null) {
+            dbVideo.setPublishedAt(video.publishedAt());
+        }
         videoRepository.save(dbVideo);
     }
 
-    private void createVideo(SearchResult video, Channel channel) {
+    private void createVideo(YoutubeVideoSnippet video, Channel channel) {
         var dbVideo = new Video();
         dbVideo.setChannel(channel);
-        dbVideo.setYoutubeId(video.getId().getVideoId());
-        dbVideo.setDescription(video.getSnippet().getDescription());
-        dbVideo.setTitle(video.getSnippet().getTitle());
-        dbVideo.setThumbnail(video.getSnippet().getThumbnails().getHigh().getUrl());
-        dbVideo.setPublishedAt(Instant.ofEpochMilli(video.getSnippet().getPublishedAt().getValue()));
+        dbVideo.setYoutubeId(video.youtubeId());
+        dbVideo.setDescription(video.description());
+        dbVideo.setTitle(video.title());
+        dbVideo.setThumbnail(video.thumbnailUrl());
+        dbVideo.setPublishedAt(video.publishedAt());
         dbVideo.setSyncAt(Instant.now());
         videoRepository.save(dbVideo);
     }

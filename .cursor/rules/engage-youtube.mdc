@@ -10,13 +10,13 @@ alwaysApply: false
 
 - Single facade for YouTube Data API v3 — all external calls go here.
 - Each method receives the **channel API key** (`setKey(apiKey)` on requests).
-- Paginate with `nextPageToken`; expose page-level methods for quota-aware sync.
+- Paginate with `nextPageToken`; expose page-level methods for quota-aware sync (`fetchUploadsPlaylistPage`, `fetchCommentThreadPage`, …).
 - Log errors with channel/video id context; return last page on FORBIDDEN for search/comments.
 
 ## SyncVideoTask
 
 - One **connected** channel per scheduled run (round-robin).
-- One search page per run (`engage.sync.video.pages-per-run`, default 1).
+- One uploads-playlist page per run (`engage.sync.video.pages-per-run`, default 1); backfill continues via `nextPageToken` into older videos.
 - Upsert videos by `youtubeId`; update channel `syncAt` and `nextPageToken`.
 
 ## SyncCommentsTask

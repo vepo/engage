@@ -26,6 +26,9 @@ public class Channel {
     @Column(name = "next_page_token")
     private String nextPageToken;
 
+    @Column(name = "uploads_playlist_id", length = 50)
+    private String uploadsPlaylistId;
+
     @Column(name = "youtube_api_key")
     private String youtubeApiKey;
 
@@ -67,6 +70,14 @@ public class Channel {
 
     public void setNextPageToken(String nextPageToken) {
         this.nextPageToken = nextPageToken;
+    }
+
+    public String getUploadsPlaylistId() {
+        return uploadsPlaylistId;
+    }
+
+    public void setUploadsPlaylistId(String uploadsPlaylistId) {
+        this.uploadsPlaylistId = uploadsPlaylistId;
     }
 
     public String getYoutubeApiKey() {

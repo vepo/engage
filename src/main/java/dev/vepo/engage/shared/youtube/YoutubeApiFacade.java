@@ -21,6 +21,8 @@ import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.Channel;
 import com.google.api.services.youtube.model.ChannelListResponse;
 import com.google.api.services.youtube.model.CommentThread;
+import com.google.api.services.youtube.model.PlaylistItem;
+import com.google.api.services.youtube.model.PlaylistItemListResponse;
 import com.google.api.services.youtube.model.SearchResult;
 import com.google.api.services.youtube.model.Video;
 import com.google.api.services.youtube.model.VideoListResponse;
@@ -40,13 +42,99 @@ import jakarta.ws.rs.core.Response.Status;
 public class YoutubeApiFacade {
     private static final Logger logger = LoggerFactory.getLogger(YoutubeApiFacade.class);
     private static final String APPLICATION_NAME = "engage";
-    private static final long MAX_SEARCH_RESULTS = 100L;
+    private static final long MAX_SEARCH_RESULTS = 50L;
+    private static final long MAX_PLAYLIST_RESULTS = 50L;
     private static final long MAX_COMMENT_RESULTS = 100L;
 
     private final AtomicReference<YouTube> youtubeClient = new AtomicReference<>();
 
     public void validateChannelExists(String apiKey, String youtubeChannelId) {
         fetchChannelStatistics(apiKey, youtubeChannelId);
+    }
+
+    public String fetchUploadsPlaylistId(String apiKey, String youtubeChannelId) {
+        requireApiKey(apiKey);
+        try {
+            ChannelListResponse response = client().channels()
+                                                   .list("contentDetails")
+                                                   .setId(youtubeChannelId)
+                                                   .setKey(apiKey)
+                                                   .execute();
+
+            if (response.getItems() == null || response.getItems().isEmpty()) {
+                throw new IllegalStateException("YouTube channel not found: %s".formatted(youtubeChannelId));
+            }
+
+            var uploadsPlaylistId = response.getItems().getFirst().getContentDetails().getRelatedPlaylists().getUploads();
+            if (uploadsPlaylistId == null || uploadsPlaylistId.isBlank()) {
+                throw new IllegalStateException("YouTube uploads playlist not found for channel %s".formatted(youtubeChannelId));
+            }
+            return uploadsPlaylistId;
+        } catch (GoogleJsonResponseException gjre) {
+            logger.error("YouTube API error loading uploads playlist for {}", youtubeChannelId, gjre);
+            throw youtubeRequestFailed("Cannot load YouTube uploads playlist", gjre);
+        } catch (IOException ioe) {
+            logger.error("IO error loading uploads playlist for {}", youtubeChannelId, ioe);
+            throw new IllegalStateException("Cannot load YouTube uploads playlist", ioe);
+        }
+    }
+
+    public PlaylistVideoPage fetchUploadsPlaylistPage(String apiKey,
+                                                      String uploadsPlaylistId,
+                                                      String pageToken,
+                                                      SyncRunReport report) {
+        requireApiKey(apiKey);
+        try {
+            var request = client().playlistItems()
+                                  .list("snippet,contentDetails")
+                                  .setPlaylistId(uploadsPlaylistId)
+                                  .setMaxResults(MAX_PLAYLIST_RESULTS)
+                                  .setKey(apiKey)
+                                  .setPageToken(pageToken);
+
+            PlaylistItemListResponse response = request.execute();
+            var items = response.getItems() == null ? List.<PlaylistItem>of() : response.getItems();
+            var snippets = items.stream().map(this::toVideoSnippet).toList();
+            var nextToken = response.getNextPageToken();
+            var lastPage = items.isEmpty() || nextToken == null;
+            recordApiCall(report,
+                          "youtube.playlistItems.list",
+                          "Vídeos da playlist de uploads",
+                          "success",
+                          200,
+                          snippets.size(),
+                          null,
+                          null,
+                          null);
+            return new PlaylistVideoPage(snippets, nextToken, lastPage);
+        } catch (GoogleJsonResponseException gjre) {
+            logger.error("YouTube playlist items failed for playlist {}", uploadsPlaylistId, gjre);
+            recordApiCall(report,
+                          "youtube.playlistItems.list",
+                          "Vídeos da playlist de uploads",
+                          gjre.getStatusCode() == Status.FORBIDDEN.getStatusCode() ? "forbidden" : "error",
+                          gjre.getStatusCode(),
+                          0,
+                          null,
+                          null,
+                          gjre.getMessage());
+            if (gjre.getStatusCode() == Status.FORBIDDEN.getStatusCode()) {
+                return new PlaylistVideoPage(List.of(), pageToken, true);
+            }
+            throw new IllegalStateException("Cannot load uploads playlist videos for %s".formatted(uploadsPlaylistId), gjre);
+        } catch (IOException ioe) {
+            logger.error("IO error loading playlist items for {}", uploadsPlaylistId, ioe);
+            recordApiCall(report,
+                          "youtube.playlistItems.list",
+                          "Vídeos da playlist de uploads",
+                          "error",
+                          0,
+                          0,
+                          null,
+                          null,
+                          ioe.getMessage());
+            throw new IllegalStateException("Cannot load uploads playlist videos for %s".formatted(uploadsPlaylistId), ioe);
+        }
     }
 
     public VideoSearchPage fetchVideoSearchPage(String apiKey,
@@ -324,6 +412,24 @@ public class YoutubeApiFacade {
 
     private long parseCount(java.math.BigInteger value) {
         return value == null ? 0L : value.longValue();
+    }
+
+    private YoutubeVideoSnippet toVideoSnippet(PlaylistItem item) {
+        var snippet = item.getSnippet();
+        var videoId = item.getContentDetails().getVideoId();
+        var thumbnail = snippet.getThumbnails() != null && snippet.getThumbnails().getHigh() != null
+                               ? snippet.getThumbnails().getHigh().getUrl()
+                               : snippet.getThumbnails() != null && snippet.getThumbnails().getDefault() != null
+                                        ? snippet.getThumbnails().getDefault().getUrl()
+                               : null;
+        var publishedAt = snippet.getPublishedAt() == null
+                                                           ? null
+                                                           : Instant.ofEpochMilli(snippet.getPublishedAt().getValue());
+        return new YoutubeVideoSnippet(videoId,
+                                       snippet.getTitle(),
+                                       snippet.getDescription(),
+                                       thumbnail,
+                                       publishedAt);
     }
 
     private void recordApiCall(SyncRunReport report,

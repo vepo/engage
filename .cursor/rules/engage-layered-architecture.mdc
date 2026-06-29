@@ -26,7 +26,7 @@ Follow [ARCHITECTURE.md](../../ARCHITECTURE.md) §8. Dependencies flow **downwar
 ## YoutubeApiFacade — external integration
 
 - Google YouTube client only; no JPA.
-- Expose page-level methods: `fetchVideoSearchPage`, `fetchCommentThreadPage`, etc.
+- Expose page-level methods: `fetchUploadsPlaylistPage`, `fetchCommentThreadPage`, etc.
 
 ## *Service — business logic
 

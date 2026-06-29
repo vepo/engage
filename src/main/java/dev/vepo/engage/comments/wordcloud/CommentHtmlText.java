@@ -10,8 +10,7 @@ final class CommentHtmlText {
     private static final Pattern NUMERIC_DECIMAL = Pattern.compile("&#(\\d+);");
     private static final Pattern NAMED_ENTITY = Pattern.compile("&([a-zA-Z]+);");
     private static final Pattern HTML_TAG = Pattern.compile("<[^>]+>");
-    private static final Map<String, String> NAMED_ENTITIES = Map.ofEntries(
-                                                                            Map.entry("quot", "\""),
+    private static final Map<String, String> NAMED_ENTITIES = Map.ofEntries(Map.entry("quot", "\""),
                                                                             Map.entry("amp", "&"),
                                                                             Map.entry("lt", "<"),
                                                                             Map.entry("gt", ">"),

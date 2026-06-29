@@ -36,11 +36,11 @@ Quota-conscious sync (configurable in `application.properties`):
 | Property | Default | Effect |
 |----------|---------|--------|
 | `engage.sync.video.interval` | `5m` | Scheduler cadence |
-| `engage.sync.video.pages-per-run` | `1` | Max search pages (100 videos) per channel per run |
+| `engage.sync.video.pages-per-run` | `1` | Max uploads-playlist pages (50 videos each) per channel per run |
 | `engage.sync.comments.interval` | `10m` | Comment scheduler cadence |
 | `engage.sync.comments.videos-per-run` | `3` | Videos processed per run (one comment page each) |
 
-Video sync rotates one connected channel per run. Comment sync picks the oldest `comments_sync_at` and paginates via `comments_next_page_token`.
+Video sync rotates one connected channel per run. It pages through the channel **uploads playlist** (`playlistItems.list`) for backfill (no 500-video search cap), then refreshes the newest playlist page each run. Comment sync picks the oldest `comments_sync_at` and paginates via `comments_next_page_token`.
 
 ## Sync notifications (Passport)
 

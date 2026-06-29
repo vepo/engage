@@ -73,20 +73,22 @@ public class ChannelService {
                                        .orElseThrow(() -> new WebApplicationException("Channel not found with id: %d".formatted(id),
                                                                                       Response.Status.NOT_FOUND));
 
-        if (request.youtubeId() != null &&
-                !request.youtubeId().equals(channel.getYoutubeId()) &&
-                channelRepository.existsByYoutubeId(request.youtubeId())) {
-            throw new WebApplicationException("Channel with YouTube ID %s already exists".formatted(request.youtubeId()),
-                                              Response.Status.CONFLICT);
+        if (request.youtubeId() != null) {
+            if (!request.youtubeId().equals(channel.getYoutubeId()) && channelRepository.existsByYoutubeId(request.youtubeId())) {
+                throw new WebApplicationException("Channel with YouTube ID %s already exists".formatted(request.youtubeId()),
+                                                  Response.Status.CONFLICT);
+            }
+            if (!request.youtubeId().equals(channel.getYoutubeId())) {
+                channel.setNextPageToken(null);
+                channel.setUploadsPlaylistId(null);
+            }
+            channel.setYoutubeId(request.youtubeId());
         }
 
         var connected = request.connected() != null ? request.connected() : channel.isConnected();
         var apiKey = request.youtubeApiKey() != null ? normalizeApiKey(request.youtubeApiKey()) : channel.getYoutubeApiKey();
         validateConnectionRequest(connected, apiKey);
 
-        if (request.youtubeId() != null) {
-            channel.setYoutubeId(request.youtubeId());
-        }
         if (request.youtubeApiKey() != null) {
             channel.setYoutubeApiKey(apiKey);
         }

@@ -41,9 +41,10 @@ erDiagram
 | Term | Meaning | Code / notes |
 |------|---------|--------------|
 | **Sync** | Pull data from YouTube API into local database. | `syncAt` on entities |
-| **Video sync** | Scheduled job fetching new/updated videos per connected channel (one channel + one page per run). | `SyncVideoTask`, every 5m |
+| **Video sync** | Scheduled job fetching videos from the channel **uploads playlist** (one channel + one page per run). Backfill paginates into older videos; after backfill, each run refreshes the newest page. | `SyncVideoTask`, every 5m |
 | **Comment sync** | Scheduled job fetching one comment page per due video. | `SyncCommentsTask`, every 10m |
-| **Next page token** | YouTube pagination cursor for channel video search. | `Channel.nextPageToken` |
+| **Uploads playlist id** | YouTube playlist id (`UU…`) listing all channel uploads; used for full video backfill beyond the search API 500-video cap. | `Channel.uploadsPlaylistId` |
+| **Next page token** | YouTube pagination cursor for uploads playlist backfill. | `Channel.nextPageToken` |
 | **YouTube service** | Google API client wrapper. | `YoutubeApiFacade` |
 | **Sync run report** | Aggregate report for one background sync run (title, description, JSON summary). | `SyncRunReport` |
 | **Sync run report item** | One entry per YouTube API call during a run. | `SyncRunReportItem`, `YoutubeApiFacade.recordApiCall()` |
