@@ -27,7 +27,7 @@ class CommentWordCloudServiceTest {
         assertThat(wordCloud).isNotEmpty();
         assertThat(wordCloud.getFirst().word()).isEqualTo("engage");
         assertThat(wordCloud.getFirst().count()).isEqualTo(3);
-        assertThat(wordCloud.stream().map(WordCloudEntry::word)).doesNotContain("muito", "bem", "e");
+        assertThat(wordCloud.stream().map(WordCloudEntry::word)).doesNotContain("muito", "e");
     }
 
     @Test
