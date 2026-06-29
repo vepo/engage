@@ -41,6 +41,25 @@ class CommentWordCloudServiceTest {
         assertThat(wordCloud.getFirst().count()).isEqualTo(3);
     }
 
+    @Test
+    void shouldStripHtmlTagsBeforeTokenizing() {
+        var comment = commentWithText("<a href=\"https://example.com\">link</a> excelente conteudo");
+
+        var wordCloud = service.buildFromComments(List.of(comment));
+
+        assertThat(wordCloud.stream().map(WordCloudEntry::word)).contains("excelente", "conteudo");
+        assertThat(wordCloud.stream().map(WordCloudEntry::word)).doesNotContain("href", "https", "example", "com");
+    }
+
+    @Test
+    void shouldIgnoreEnglishStopWordsNotInPortugueseList() {
+        var comment = commentWithText("the quick brown fox");
+
+        var wordCloud = service.buildFromComments(List.of(comment));
+
+        assertThat(wordCloud.stream().map(WordCloudEntry::word)).contains("quick", "brown");
+    }
+
     private Comment commentWithText(String text) {
         var comment = new Comment();
         comment.setText(text);
