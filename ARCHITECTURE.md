@@ -21,6 +21,7 @@ YouTube engagement service: channel registry, video/comment sync, live statistic
 | GET | `/api/videos` | `engage.admin` | Paginated synced videos (`page`, `size`, optional `q`); ordered by `publishedAt` desc; includes `commentCount` |
 | GET | `/api/videos/{videoId}/comments` | `engage.admin` | Comments for one video (`ListVideoCommentsEndpoint`) |
 | GET | `/api/videos/{videoId}/comments/word-cloud` | `engage.admin` | Word frequency cloud for one video (`VideoCommentWordCloudEndpoint`) |
+| GET | `/api/comments/word-cloud` | `engage.admin` | Word frequency cloud for all synced comments (`PlatformCommentWordCloudEndpoint`) |
 | GET | `/api/channels/{channelId}/comments` | `engage.admin` | All comments for a channel's videos (`ListChannelCommentsEndpoint`) |
 | GET | `/api/channels/{channelId}/comments/word-cloud` | `engage.admin` | Word frequency cloud for a channel (`ChannelCommentWordCloudEndpoint`) |
 

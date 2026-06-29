@@ -24,4 +24,12 @@ class VideoCommentWordCloudEndpointTest {
                .then()
                .statusCode(401);
     }
+
+    @Test
+    void shouldRequireAuthenticationForPlatformWordCloud() {
+        given().when()
+               .get("/api/comments/word-cloud")
+               .then()
+               .statusCode(401);
+    }
 }

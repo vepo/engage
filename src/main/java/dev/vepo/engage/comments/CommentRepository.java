@@ -52,6 +52,12 @@ public class CommentRepository {
                                  .toList();
     }
 
+    public List<Comment> findAll() {
+        return this.entityManager.createQuery("FROM Comment ORDER BY publishedAt DESC", Comment.class)
+                                 .getResultStream()
+                                 .toList();
+    }
+
     public Comment save(Comment comment) {
         this.entityManager.persist(comment);
         return comment;
