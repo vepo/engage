@@ -19,7 +19,6 @@ public class CommentWordCloudService {
     private static final int MIN_WORD_LENGTH = 3;
     private static final int MAX_WORDS = 50;
     private static final Pattern TOKEN_SPLIT = Pattern.compile("[^\\p{IsAlphabetic}]+");
-    private static final Pattern HTML_TAG = Pattern.compile("<[^>]+>");
     private static final Set<String> STOP_WORDS = Set.of(
                                                          "a",
                                                          "ao",
@@ -159,8 +158,8 @@ public class CommentWordCloudService {
             return List.of();
         }
 
-        var withoutHtml = HTML_TAG.matcher(text).replaceAll(" ");
-        var normalized = Normalizer.normalize(withoutHtml, Normalizer.Form.NFD)
+        var plainText = CommentHtmlText.toPlainText(text);
+        var normalized = Normalizer.normalize(plainText, Normalizer.Form.NFD)
                                    .replaceAll("\\p{M}+", "")
                                    .toLowerCase(Locale.ROOT);
         var tokens = new ArrayList<String>();

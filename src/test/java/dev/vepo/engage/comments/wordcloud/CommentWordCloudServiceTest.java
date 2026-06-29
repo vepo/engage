@@ -52,6 +52,25 @@ class CommentWordCloudServiceTest {
     }
 
     @Test
+    void shouldDecodeHtmlEntitiesBeforeTokenizing() {
+        var comment = commentWithText("&quot;video sobre pra sao victor&quot; bom conteudo");
+
+        var wordCloud = service.buildFromComments(List.of(comment));
+
+        assertThat(wordCloud.stream().map(WordCloudEntry::word)).contains("video", "sobre", "victor", "conteudo");
+        assertThat(wordCloud.stream().map(WordCloudEntry::word)).doesNotContain("quot", "amp", "nbsp");
+    }
+
+    @Test
+    void shouldDecodeNumericHtmlEntities() {
+        var comment = commentWithText("&#39;otimo&#39; canal");
+
+        var wordCloud = service.buildFromComments(List.of(comment));
+
+        assertThat(wordCloud.stream().map(WordCloudEntry::word)).contains("otimo", "canal");
+    }
+
+    @Test
     void shouldIgnoreEnglishStopWordsNotInPortugueseList() {
         var comment = commentWithText("the quick brown fox");
 
