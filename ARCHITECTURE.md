@@ -18,7 +18,7 @@ YouTube engagement service: channel registry, video/comment sync, live statistic
 | GET | `/api/channels/{id}` | `engage.admin` | Channel by id |
 | PUT | `/api/channels/{id}` | `engage.admin` | Update YouTube id, API key, or connected flag |
 | DELETE | `/api/channels/{id}` | `engage.admin` | Remove channel |
-| GET | `/api/videos` | `engage.admin` | List synced videos |
+| GET | `/api/videos` | `engage.admin` | Paginated synced videos (`page`, `size`, optional `q`); ordered by `publishedAt` desc; includes `commentCount` |
 | GET | `/api/videos/{videoId}/comments` | `engage.admin` | Comments for one video (`ListVideoCommentsEndpoint`) |
 | GET | `/api/channels/{channelId}/comments` | `engage.admin` | All comments for a channel's videos (`ListChannelCommentsEndpoint`) |
 
@@ -26,7 +26,7 @@ YouTube engagement service: channel registry, video/comment sync, live statistic
 
 All YouTube Data API v3 calls go through `YoutubeApiFacade` (`shared/youtube/`). Each method receives the **channel-specific API key**; sync and statistics skip channels that are not `connected` or lack a key.
 
-Native image: register Google/YouTube JSON types and {@code YouTubeRequest} query-parameter fields via `GoogleApiReflectionConfig` (`@RegisterForReflection`). Without {@code YouTubeRequest}, {@code UriTemplate} cannot read the {@code key} field and YouTube returns 403 "unregistered callers" even when {@code curl} with the same key works.
+Native image: register Google/YouTube JSON types and {@code YouTubeRequest} query-parameter fields via `GoogleApiReflectionConfig` (`@RegisterForReflection`). Register REST API records via `ApiReflectionConfig` (`shared/json/`) so Jackson can serialize {@code CommentResponse}, {@code VideoPageResponse}, etc.
 
 Quota-conscious sync (configurable in `application.properties`):
 

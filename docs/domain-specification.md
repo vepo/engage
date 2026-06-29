@@ -58,7 +58,7 @@ erDiagram
 | **Update channel** | Change YouTube id, API key, or connected flag. | `ChannelResource` PUT |
 | **Delete channel** | Remove channel record. | `ChannelResource` DELETE |
 | **List channels** | Return all registered channels. | `ListChannelsEndpoint` |
-| **List videos** | Return all synced videos. | `ListVideoEndpoint` |
+| **List videos** | Return synced videos paginated, newest first, with comment counts. | `ListVideoEndpoint`, `GET /api/videos?page&size&q` |
 | **List comments** | Return comments for a video or all videos in a channel. | `ListVideoCommentsEndpoint`, `ListChannelCommentsEndpoint` |
 
 ### Comment model

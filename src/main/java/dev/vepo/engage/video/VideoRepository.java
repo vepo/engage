@@ -20,9 +20,45 @@ public class VideoRepository {
     }
 
     public List<Video> findAll() {
-        return this.entityManager.createQuery("FROM Video", Video.class)
+        return this.entityManager.createQuery("FROM Video v ORDER BY v.publishedAt DESC NULLS LAST, v.id DESC", Video.class)
                                  .getResultStream()
                                  .toList();
+    }
+
+    public long count(String search) {
+        var hasSearch = hasSearch(search);
+        var jpql = "SELECT COUNT(v) FROM Video v" + (hasSearch ? " WHERE LOWER(v.title) LIKE :pattern OR LOWER(v.youtubeId) LIKE :pattern" : "");
+        var query = this.entityManager.createQuery(jpql, Long.class);
+        if (hasSearch) {
+            query.setParameter("pattern", searchPattern(search));
+        }
+        return query.getSingleResult();
+    }
+
+    public List<VideoWithCommentCount> findPage(int page, int pageSize, String search) {
+        var hasSearch = hasSearch(search);
+        var jpql = """
+                   SELECT v, (SELECT COUNT(c) FROM Comment c WHERE c.video.id = v.id)
+                   FROM Video v
+                   """ + (hasSearch ? " WHERE LOWER(v.title) LIKE :pattern OR LOWER(v.youtubeId) LIKE :pattern" : "")
+                + " ORDER BY v.publishedAt DESC NULLS LAST, v.id DESC";
+        var query = this.entityManager.createQuery(jpql, Object[].class);
+        if (hasSearch) {
+            query.setParameter("pattern", searchPattern(search));
+        }
+        return query.setFirstResult(page * pageSize)
+                    .setMaxResults(pageSize)
+                    .getResultStream()
+                    .map(row -> new VideoWithCommentCount((Video) row[0], (Long) row[1]))
+                    .toList();
+    }
+
+    private boolean hasSearch(String search) {
+        return search != null && !search.isBlank();
+    }
+
+    private String searchPattern(String search) {
+        return "%" + search.trim().toLowerCase() + "%";
     }
 
     public Optional<Video> findByYoutubeId(String youtubeId) {
