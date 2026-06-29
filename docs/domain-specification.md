@@ -59,7 +59,7 @@ erDiagram
 | **Delete channel** | Remove channel record. | `ChannelResource` DELETE |
 | **List channels** | Return all registered channels. | `ListChannelsEndpoint` |
 | **List videos** | Return all synced videos. | `ListVideoEndpoint` |
-| **List comments** | Return comments for a video or all videos in a channel. | `ListCommentsEndpoint` |
+| **List comments** | Return comments for a video or all videos in a channel. | `ListVideoCommentsEndpoint`, `ListChannelCommentsEndpoint` |
 
 ### Comment model
 

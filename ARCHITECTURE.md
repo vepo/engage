@@ -19,8 +19,8 @@ YouTube engagement service: channel registry, video/comment sync, live statistic
 | PUT | `/api/channels/{id}` | `engage.admin` | Update YouTube id, API key, or connected flag |
 | DELETE | `/api/channels/{id}` | `engage.admin` | Remove channel |
 | GET | `/api/videos` | `engage.admin` | List synced videos |
-| GET | `/api/videos/{videoId}/comments` | `engage.admin` | Comments for one video |
-| GET | `/api/channels/{channelId}/comments` | `engage.admin` | All comments for a channel's videos |
+| GET | `/api/videos/{videoId}/comments` | `engage.admin` | Comments for one video (`ListVideoCommentsEndpoint`) |
+| GET | `/api/channels/{channelId}/comments` | `engage.admin` | All comments for a channel's videos (`ListChannelCommentsEndpoint`) |
 
 ## YouTube API facade
 

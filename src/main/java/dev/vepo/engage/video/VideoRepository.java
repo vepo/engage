@@ -7,6 +7,7 @@ import dev.vepo.engage.model.Video;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.NoResultException;
 
 @ApplicationScoped
 public class VideoRepository {
@@ -32,12 +33,14 @@ public class VideoRepository {
                                  .findFirst();
     }
 
-    public Optional<Video> findById(long id) {
-        return this.entityManager.createQuery("FROM Video WHERE id = :id", Video.class)
-                                 .setParameter("id", id)
-                                 .getResultStream()
-                                 .limit(1)
-                                 .findFirst();
+    public Optional<Video> findById(Long id) {
+        try {
+            return Optional.of(this.entityManager.createQuery("FROM Video WHERE id = :id", Video.class)
+                                                 .setParameter("id", id)
+                                                 .getSingleResult());
+        } catch (NoResultException ex) {
+            return Optional.empty();
+        }
     }
 
     public List<Video> findDueForCommentSync(int limit) {
