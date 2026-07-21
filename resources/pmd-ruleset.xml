@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="Engage"
+    xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 http://pmd.sourceforge.net/ruleset_2_0_0.xsd">
+
+    <description>
+        Bug-prone-pattern checks for Engage. Deliberately excludes category/java/design.xml (God
+        class, cyclomatic complexity, Law of Demeter, etc.) — those are subjective/architectural
+        and already covered by .claude/rules/domain-model.md and code review instead.
+    </description>
+
+    <rule ref="category/java/bestpractices.xml">
+        <!-- RequiredRoles and similar interfaces-of-constants are an intentional convention here -->
+        <exclude name="ConstantsInInterface" />
+        <!-- False positives on Class::method references (e.g. CommentHtmlText decoders) -->
+        <exclude name="UnusedPrivateMethod" />
+        <!-- False positives on fields already typed as the interface (e.g. Map.ofEntries results) -->
+        <exclude name="LooseCoupling" />
+        <!-- Redundant with SLF4J's lazily-evaluated {} placeholders -->
+        <exclude name="GuardLogStatement" />
+    </rule>
+    <rule ref="category/java/errorprone.xml">
+        <!-- Pagination loops idiomatically null out nextPageToken as an end-of-pages sentinel -->
+        <exclude name="NullAssignment" />
+        <!-- False positives on Quarkus @RegisterForReflection marker classes (private ctor, never instantiated) -->
+        <exclude name="MissingStaticMethodInNonInstantiatableClass" />
+    </rule>
+</ruleset>
