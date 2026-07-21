@@ -48,7 +48,7 @@ erDiagram
 | **YouTube service** | Google API client wrapper. | `YoutubeApiFacade` |
 | **Sync run report** | Aggregate report for one background sync run (title, description, JSON summary). | `SyncRunReport` |
 | **Sync run report item** | One entry per YouTube API call during a run. | `SyncRunReportItem`, `YoutubeApiFacade.recordApiCall()` |
-| **Publish notification** | POST sync report to Passport internal API after each run. | `PassportNotificationPublisher` |
+| **Publish notification** | POST sync report to Passport internal API, only when the run failed. | `PassportNotificationPublisher` |
 
 ### Actions
 
@@ -90,4 +90,4 @@ erDiagram
 6. **Connected channel** requires a non-blank **YouTube API key** (400 Bad Request).
 7. Sync jobs must not invent ids — always use YouTube API identifiers.
 8. Sync and live statistics run only for **connected** channels with an API key.
-9. After each sync run, Engage **publishes notification** to Passport; sync must not fail if Passport is unreachable.
+9. When a sync run fails, Engage **publishes notification** to Passport; sync must not fail if Passport is unreachable. Successful runs are not published, to avoid flooding Passport's feed with routine polling.

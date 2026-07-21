@@ -92,11 +92,12 @@ public class SyncCommentsTask {
             report.setDescription("Vídeo %s — %d thread(s) processada(s)".formatted(video.getYoutubeId(), threadsProcessed));
         } catch (Exception ex) {
             logger.error("Error syncing comments for video {}", video.getYoutubeId(), ex);
-            report.putSummary("status", "failed");
-            report.putSummary("error", ex.getMessage());
+            report.markFailed(ex.getMessage());
             report.setDescription("Falha na sincronização de comentários do vídeo %s".formatted(video.getYoutubeId()));
         } finally {
-            passportNotificationPublisher.publishSyncReport(report);
+            if (report.isFailed()) {
+                passportNotificationPublisher.publishSyncReport(report);
+            }
         }
     }
 

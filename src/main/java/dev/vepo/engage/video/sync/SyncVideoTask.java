@@ -117,11 +117,12 @@ public class SyncVideoTask {
             report.setDescription("Canal %s — %d vídeo(s) processado(s)".formatted(channel.getYoutubeId(), videosProcessed));
         } catch (Exception ex) {
             logger.error("Video sync failed for channel {}", channel.getYoutubeId(), ex);
-            report.putSummary("status", "failed");
-            report.putSummary("error", ex.getMessage());
+            report.markFailed(ex.getMessage());
             report.setDescription("Falha na sincronização de vídeos do canal %s".formatted(channel.getYoutubeId()));
         } finally {
-            passportNotificationPublisher.publishSyncReport(report);
+            if (report.isFailed()) {
+                passportNotificationPublisher.publishSyncReport(report);
+            }
         }
     }
 

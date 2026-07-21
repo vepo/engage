@@ -24,52 +24,72 @@ class SyncVideoTaskTest {
     void shouldMarkBackfillCompletedWhenLastPageReached() {
         var channel = channelReadyForSync();
         var facade = new StubYoutubeApiFacade(List.of(new PlaylistVideoPage(List.of(snippet("v1")), null, true)));
-        var task = newTask(facade, channel);
+        var publisher = new StubPassportNotificationPublisher();
+        var task = newTask(facade, channel, publisher);
 
         task.syncVideosForNextChannel();
 
         assertThat(channel.isBackfillCompleted()).isTrue();
         assertThat(channel.getNextPageToken()).isNull();
+        assertThat(publisher.published).isEmpty();
     }
 
     @Test
     void shouldPersistNextPageTokenWhileBackfillInProgress() {
         var channel = channelReadyForSync();
         var facade = new StubYoutubeApiFacade(List.of(new PlaylistVideoPage(List.of(snippet("v1")), "TOKEN_A", false)));
-        var task = newTask(facade, channel);
+        var publisher = new StubPassportNotificationPublisher();
+        var task = newTask(facade, channel, publisher);
 
         task.syncVideosForNextChannel();
 
         assertThat(channel.isBackfillCompleted()).isFalse();
         assertThat(channel.getNextPageToken()).isEqualTo("TOKEN_A");
+        assertThat(publisher.published).isEmpty();
     }
 
     @Test
     void shouldNotReArmBackfillAfterItAlreadyCompleted() {
         // Regression test: once backfill has completed, a steady-state freshness check
-        // must not
-        // persist the fetched page's nextPageToken, or the channel would be pushed back
-        // into
-        // backfill mode forever and never poll the newest page again.
+        // must not persist the fetched page's nextPageToken, or the channel would be
+        // pushed
+        // back into backfill mode forever and never poll the newest page again.
         var channel = channelReadyForSync();
         channel.setBackfillCompleted(true);
         channel.setNextPageToken(null);
         var facade = new StubYoutubeApiFacade(List.of(new PlaylistVideoPage(List.of(snippet("newest")), "SOME_TOKEN", false)));
-        var task = newTask(facade, channel);
+        var publisher = new StubPassportNotificationPublisher();
+        var task = newTask(facade, channel, publisher);
 
         task.syncVideosForNextChannel();
 
         assertThat(facade.requestedPageTokens).containsExactly((String) null);
         assertThat(channel.isBackfillCompleted()).isTrue();
         assertThat(channel.getNextPageToken()).isNull();
+        assertThat(publisher.published).isEmpty();
     }
 
-    private SyncVideoTask newTask(YoutubeApiFacade facade, Channel channel) {
-        return new SyncVideoTask(facade,
-                                 new StubChannelRepository(channel),
-                                 new StubVideoRepository(),
-                                 new StubPassportNotificationPublisher(),
-                                 1);
+    @Test
+    void shouldOnlyPublishNotificationWhenSyncFails() {
+        // A failing YouTube call should still result in exactly one published
+        // notification,
+        // carrying the failure — routine successful runs must stay silent (see the
+        // three
+        // tests above), so Passport's feed isn't flooded by every 5-minute poll.
+        var channel = channelReadyForSync();
+        var facade = new ThrowingYoutubeApiFacade();
+        var publisher = new StubPassportNotificationPublisher();
+        var task = newTask(facade, channel, publisher);
+
+        task.syncVideosForNextChannel();
+
+        assertThat(publisher.published).hasSize(1);
+        assertThat(publisher.published.getFirst().isFailed()).isTrue();
+        assertThat(publisher.published.getFirst().toPublishRequest().report()).contains("YouTube is down");
+    }
+
+    private SyncVideoTask newTask(YoutubeApiFacade facade, Channel channel, PassportNotificationPublisher publisher) {
+        return new SyncVideoTask(facade, new StubChannelRepository(channel), new StubVideoRepository(), publisher, 1);
     }
 
     private Channel channelReadyForSync() {
@@ -100,6 +120,14 @@ class SyncVideoTaskTest {
                                                           SyncRunReport report) {
             requestedPageTokens.add(pageToken);
             return pages.get(Math.min(callIndex++, pages.size() - 1));
+        }
+    }
+
+    private static class ThrowingYoutubeApiFacade extends YoutubeApiFacade {
+        @Override
+        public PlaylistVideoPage fetchUploadsPlaylistPage(String apiKey, String uploadsPlaylistId, String pageToken,
+                                                          SyncRunReport report) {
+            throw new IllegalStateException("YouTube is down");
         }
     }
 
@@ -142,13 +170,15 @@ class SyncVideoTaskTest {
     }
 
     private static class StubPassportNotificationPublisher extends PassportNotificationPublisher {
+        private final List<SyncRunReport> published = new ArrayList<>();
+
         StubPassportNotificationPublisher() {
             super(null);
         }
 
         @Override
         public void publishSyncReport(SyncRunReport report) {
-            // no-op
+            published.add(report);
         }
     }
 }

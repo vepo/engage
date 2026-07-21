@@ -17,6 +17,7 @@ public class SyncRunReport {
     private String description;
     private final Map<String, Object> summaryReport = new LinkedHashMap<>();
     private final List<SyncRunReportItem> items = new ArrayList<>();
+    private boolean failed;
 
     public SyncRunReport(String sourceType, Long engageChannelId, String title, String description) {
         this.sourceType = sourceType;
@@ -31,6 +32,16 @@ public class SyncRunReport {
 
     public void putSummary(String key, Object value) {
         summaryReport.put(key, value);
+    }
+
+    public void markFailed(String error) {
+        this.failed = true;
+        putSummary("status", "failed");
+        putSummary("error", error);
+    }
+
+    public boolean isFailed() {
+        return failed;
     }
 
     public void addItem(String title, String description, Map<String, Object> reportFields) {

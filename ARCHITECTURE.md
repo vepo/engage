@@ -44,7 +44,9 @@ Video sync rotates one connected channel per run. It pages through the channel *
 
 ## Sync notifications (Passport)
 
-Background sync tasks build a **sync run report** (one notification per run, one item per YouTube API call) and publish to Passport:
+Background sync tasks build a **sync run report** (one item per YouTube API call) and publish it to Passport
+**only when the run fails** — successful runs stay silent so Passport's notification feed isn't flooded by
+routine 5/10-minute polling:
 
 ```properties
 quarkus.rest-client.passport-api.url=${PASSPORT_API_URL:http://localhost:8080}
