@@ -68,40 +68,52 @@ public class SyncVideoTask {
         report.putSummary("youtubeChannelId", channel.getYoutubeId());
         report.putSummary("pagesPerRun", videoPagesPerRun);
 
+        var backfillCompleted = channel.isBackfillCompleted();
         var pageToken = channel.getNextPageToken();
-        var backfillInProgress = pageToken != null;
         var videosProcessed = 0;
 
         try {
             var uploadsPlaylistId = resolveUploadsPlaylistId(channel, report);
             report.putSummary("uploadsPlaylistId", uploadsPlaylistId);
 
-            for (int page = 0; page < videoPagesPerRun; page++) {
-                var requestToken = backfillInProgress ? pageToken : null;
+            if (backfillCompleted) {
+                // Steady state: no persisted token — just refresh the newest playlist page
+                // every run.
                 var playlistPage = youtubeApiFacade.fetchUploadsPlaylistPage(channel.getYoutubeApiKey(),
                                                                              uploadsPlaylistId,
-                                                                             requestToken,
+                                                                             null,
                                                                              report);
                 playlistPage.items().forEach(item -> upsertVideo(item, channel));
-                videosProcessed += playlistPage.items().size();
+                videosProcessed = playlistPage.items().size();
+                pageToken = null;
+            } else {
+                // Backfill in progress: walk older pages via the persisted token, oldest page
+                // marks completion.
+                for (int page = 0; page < videoPagesPerRun; page++) {
+                    var playlistPage = youtubeApiFacade.fetchUploadsPlaylistPage(channel.getYoutubeApiKey(),
+                                                                                 uploadsPlaylistId,
+                                                                                 pageToken,
+                                                                                 report);
+                    playlistPage.items().forEach(item -> upsertVideo(item, channel));
+                    videosProcessed += playlistPage.items().size();
 
-                pageToken = playlistPage.nextPageToken();
-                if (playlistPage.lastPage()) {
-                    pageToken = null;
-                    break;
-                }
-                if (!backfillInProgress) {
-                    break;
+                    pageToken = playlistPage.nextPageToken();
+                    if (playlistPage.lastPage()) {
+                        backfillCompleted = true;
+                        pageToken = null;
+                        break;
+                    }
                 }
             }
 
             channel.setSyncAt(Instant.now());
             channel.setNextPageToken(pageToken);
+            channel.setBackfillCompleted(backfillCompleted);
             channelRepository.merge(channel);
 
             report.putSummary("status", "completed");
             report.putSummary("videosProcessed", videosProcessed);
-            report.putSummary("backfillInProgress", pageToken != null);
+            report.putSummary("backfillCompleted", backfillCompleted);
             report.setDescription("Canal %s — %d vídeo(s) processado(s)".formatted(channel.getYoutubeId(), videosProcessed));
         } catch (Exception ex) {
             logger.error("Video sync failed for channel {}", channel.getYoutubeId(), ex);

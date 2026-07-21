@@ -29,6 +29,9 @@ public class Channel {
     @Column(name = "uploads_playlist_id", length = 50)
     private String uploadsPlaylistId;
 
+    @Column(name = "backfill_completed", nullable = false)
+    private boolean backfillCompleted;
+
     @Column(name = "youtube_api_key")
     private String youtubeApiKey;
 
@@ -78,6 +81,14 @@ public class Channel {
 
     public void setUploadsPlaylistId(String uploadsPlaylistId) {
         this.uploadsPlaylistId = uploadsPlaylistId;
+    }
+
+    public boolean isBackfillCompleted() {
+        return backfillCompleted;
+    }
+
+    public void setBackfillCompleted(boolean backfillCompleted) {
+        this.backfillCompleted = backfillCompleted;
     }
 
     public String getYoutubeApiKey() {
